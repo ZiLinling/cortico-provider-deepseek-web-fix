@@ -1,6 +1,6 @@
 {
   "name": "cortico-provider-deepseek-web-fix",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "type": "module",
   "description": "Independent fixes for cortico-provider-deepseek-web 0.6.1: tool-call parsing, validation and response metadata cleanup.",
   "license": "MIT",

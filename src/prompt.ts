@@ -60,13 +60,6 @@ export const MAX_PROMPT_CHARS = (() => {
 /** 截断处的标记，让模型知道中间有内容被拿掉了。 */
 const COMPACTION_MARKER = '\n\n[Earlier context compacted by cortico-provider-deepseek-web]\n\n';
 
-/**
- * 历史里每条工具回执保留多少字。
- *
- * 网页版桌宠一轮能拉回几千字的事件正文，一条 chat 攒到上百条就是十几万字，
- * 把 prompt 挤爆之后模型开始不守协议（反代注释里的 #23/#30）。历史只需要看个大概。
- */
-const MAX_TOOL_OUTPUT_CHARS = 500;
 /** 历史里每条助手回复保留多少字；抄反代 `MAX_HISTORY_ENTRY_CHARS = 2000`。 */
 const MAX_HISTORY_MESSAGE_CHARS = 2000;
 
@@ -211,7 +204,10 @@ export function flatten(request: Request, options: FlattenOptions = {}): Flatten
       }
 
       if (type === 'function_call_output') {
-        blocks.push(`[工具结果]\n${clip(textOf(item.output), MAX_TOOL_OUTPUT_CHARS)}`);
+        // 工具结果包含本轮刚读回的正文，不能按“历史摘要”逐条裁剪。
+        // 新旧结果采用同一种稳定序列化，保持 SessionBridge 已送达前缀一致；
+        // 单次发送仍由 boundPrompt 按总预算保留头尾、压缩中间历史。
+        blocks.push(`[工具结果]\n${textOf(item.output)}`);
         continue;
       }
 

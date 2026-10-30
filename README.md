@@ -3,7 +3,7 @@
 基于 [cortico-provider-deepseek-web 0.6.1](https://www.npmjs.com/package/cortico-provider-deepseek-web/v/0.6.1)
 修改的 Cortico / Coopanion provider 插件。provider 是连接模型服务的适配插件。
 上游 npm 发布者为 lian0721；原有网页登录、传输、图片和会话管理等功能来自上游。
-本项目维护修复，不代表上游发布的更新。版本：0.2.2。
+本项目维护修复，不代表上游发布的更新。版本：0.2.3。
 
 ## 修复内容
 
@@ -11,6 +11,10 @@
 - 按本轮工具名单及参数定义校验，通过后生成标准 function_call。
 - 清理正文开头完整的 ds_safety 分类前缀，保留后面的实际回复或调用。
 - 只有分类前缀时不创建聊天消息，也不补造工具调用；日志会提示没有收到实际内容。
+- 工具结果不再逐条裁到 500 字符；读文件、搜索等回执完整拼入输入，并保持会话续接时历史文本一致。
+
+单次发送仍受总输入预算约束（默认 80,000 字符），超出时保留头尾并压缩中间。
+read_file 自身对过长文件的读取保护仍适用。
 
 参数缺失或校验失败时明确报错，不猜参数，不自动请求模型重写。
 工具名单由 coo 每轮提供，无须按新插件硬编码工具名。
@@ -40,7 +44,7 @@
 ## 来源与许可
 
 基础代码取自上游 0.6.1 发行包。原有功能和版权归上游贡献者；
-本分支修改范围为调用提取、校验、消息分类及独立模块配置。
+本分支修改范围为调用提取、校验、消息分类、工具结果传递及独立模块配置。
 上游说明还注明协议实现来自 [FreeDeepseekAPI](https://github.com/ForgetMeAI/FreeDeepseekAPI)，
 部分参数及实测结论参考 [dsh-deepseek-web-login](https://github.com/cv-superding/dsh-deepseek-web-login)。
 保留原 [MIT 许可证及版权声明](LICENSE)。本仓库的本地提交历史不包含上游 Git 历史。
