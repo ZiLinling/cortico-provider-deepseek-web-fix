@@ -32,6 +32,7 @@ const StreamErrorEvent = (transportErrors as {
 import { unknownMeters, type TokenMeters } from 'cortico/core/generation.ts';
 import { isToolCallCandidate, looksLikeToolCall, parseToolCall, type ParsedCall, type ToolLike } from './tools.ts';
 import { ToolCallValidator, ToolOutputError } from './tool-validation.ts';
+import { hasUnclosedSafetyPrefix, stripSafetyBlocks } from './safety.ts';
 
 interface MutableOutput {
   id: string;
@@ -72,6 +73,7 @@ export interface AssemblyHooks {
   onMessageIds?(ids: { request?: number; response?: number }): void;
   allowedTools?: readonly string[];
   onToolNormalization?(name: string, form: string): void;
+  onSafetyMetadataOnly?(): void;
 }
 
 export class DeepSeekWebAssembly {
@@ -192,9 +194,20 @@ export class DeepSeekWebAssembly {
 
   /** 收尾时把攒着的正文落地：是调用就发 function_call，不是就当普通文本发出去。 */
   private flushPending(emit: (event: StreamEvent) => void): ParsedCall | null {
-    const buffered = this.pending.join('');
+    const original = this.pending.join('');
     this.pending.length = 0;
-    if (!buffered.trim()) return null;
+    const buffered = stripSafetyBlocks(original);
+    if (hasUnclosedSafetyPrefix(buffered)) {
+      throw new ToolOutputError('incomplete_safety_metadata', '上游分类标记未闭合，无法可靠区分正文和分类内容');
+    }
+    if (!buffered.trim()) {
+      if (buffered !== original) {
+        // 收到完整的分类前缀，但没有正文；允许空输出结束，不伪造 end_turn。
+        this.start(emit);
+        this.hooks.onSafetyMetadataOnly?.();
+      }
+      return null;
+    }
     const call = parseToolCall(buffered);
     if (call) {
       if (this.status === 'INCOMPLETE') throw new ToolOutputError('incomplete_generation', '上游标记本轮生成未完成');

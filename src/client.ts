@@ -28,6 +28,8 @@ import { assistantBlock, boundPrompt, flatten, imagesOfContext, MAX_PROMPT_CHARS
 import { toolReminder } from './tools.ts';
 import { powHeader, solvePow, type PowChallenge } from './pow.ts';
 import { SessionBridge } from './session.ts';
+import { stripSafetyBlocks } from './safety.ts';
+export { stripSafetyBlocks } from './safety.ts';
 
 const COMPLETION_PATH = '/api/v0/chat/completion';
 const CHALLENGE_PATH = '/api/v0/chat/create_pow_challenge';
@@ -185,6 +187,7 @@ export class DeepSeekWebProvider extends BaseProvider {
         onMessageIds: ids => this.opts.session.messageIds(key, ids.response),
         allowedTools: flat.toolNames,
         onToolNormalization: (name, form) => this.opts.log.info('工具调用已提取、校验并重封装', { tool: name, form }),
+        onSafetyMetadataOnly: () => this.opts.log.warn('DeepSeek Web：本轮仅返回 ds_safety 分类标记，未收到正文或工具调用'),
       }),
       parse: (): { response: Response; meters: never; serviceTier: null } => {
         throw new LLMError('DeepSeek Web 只产出 SSE，非流式路径不可达', 0, '');
@@ -502,19 +505,6 @@ function parseProxyError(body: string): ProxyErrorBody | null {
   }
 }
 
-/**
- * DeepSeek 网页端偶尔把内部安全分类混进正文，形如：
- *
- *   <ds_safety>[用户未成年]否 [分类]政治 [判定]…</ds_safety>Safe
- *
- * 那不是模型说的话。留着会进上下文污染会话，也可能被当成回复发出去，所以整段剥掉。
- */
-export function stripSafetyBlocks(text: string): string {
-  return text
-    .replace(/<ds_safety>[\s\S]*?<\/ds_safety>\s*(?:Safe|Unsafe)?/gi, '')
-    .trim();
-}
-
 /** 把一轮响应里的助手正文拼出来；只读 `message` 项，思考项不算。 */
 export function replyText(response: Response): string {
   const output = (response.output ?? []) as Array<{ type?: string; content?: Array<{ type?: string; text?: string }> }>;
@@ -524,7 +514,7 @@ export function replyText(response: Response): string {
       .flatMap(item => item.content ?? [])
       .map(part => part.text ?? '')
       .join(''),
-  );
+  ).trim();
 }
 
 export { COMPLETION_PATH, CHALLENGE_PATH, SESSION_PATH };

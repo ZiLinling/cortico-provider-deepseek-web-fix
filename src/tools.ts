@@ -106,6 +106,8 @@ export function buildToolManual(tools: readonly ToolLike[], allowed: readonly st
   return lines.join('\n');
 }
 
+import { hasUnclosedSafetyPrefix, stripSafetyBlocks } from './safety.ts';
+
 /** 输出以这些形状开头时，先按「可能是调用」处理，攒完整再判断。 */
 export function looksLikeToolCall(text: string): boolean {
   const head = text.replace(/^\s+/, '').slice(0, 24).toLowerCase();
@@ -120,7 +122,7 @@ function unwrapFence(text: string): string {
 
 /** 只用于明确的调用标记；普通 HTML、普通 JSON 和自然语言不强制视为工具。 */
 export function isToolCallCandidate(text: string): boolean {
-  const value = unwrapFence(text);
+  const value = unwrapFence(stripSafetyBlocks(text));
   return /^<tool_call\b/i.test(value) || /^TOOL_?CALL\s*[:：]/i.test(value)
     || /^\{\s*"(?:tool_call|function_call|tool_calls|function_calls|name)"\s*:/.test(value);
 }
@@ -266,7 +268,9 @@ function tryJson(raw: string): unknown {
  * 从一段模型输出里找出工具调用。找不到返回 null —— 调用方应当把它当普通文本处理。
  */
 export function parseToolCall(text: string): ParsedCall | null {
-  const trimmed = unwrapFence(text);
+  const cleaned = stripSafetyBlocks(text);
+  if (hasUnclosedSafetyPrefix(cleaned)) return null;
+  const trimmed = unwrapFence(cleaned);
   if (!trimmed) return null;
 
   // 1) 整段就是一个 JSON。
