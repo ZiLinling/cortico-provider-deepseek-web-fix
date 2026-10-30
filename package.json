@@ -1,6 +1,6 @@
 {
   "name": "cortico-provider-deepseek-web-xml-fix",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "DeepSeek Web provider with support for XML tool calls using a name attribute; based on cortico-provider-deepseek-web 0.6.1",
   "license": "MIT",

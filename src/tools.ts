@@ -217,6 +217,14 @@ export function parseToolCall(text: string): ParsedCall | null {
   // 工具名在 XML 属性里时，标签内只有参数，不能按 JSON 调用信封解析。
   // 只接受完整、独立的单次调用；缺尾标签或无效参数不能猜成可执行操作。
   if (/^<tool_call\s+name\s*=/i.test(trimmed)) {
+    // 网页模型也会把 JSON 参数直接写进开始标签。它不是规范 XML 属性，
+    // 因此按已知的调用格式解析；参数必须仍是完整 JSON 对象，正文必须为空。
+    const inline = /^<tool_call\s+name\s*=\s*(["'])([A-Za-z_][\w.-]*)\1\s+arguments\s*=\s*([\s\S]+)>\s*<\/tool_call\s*>$/i.exec(trimmed);
+    if (inline) {
+      const args = tryJson(inline[3]!.trim());
+      if (!args || typeof args !== 'object' || Array.isArray(args)) return null;
+      return { name: inline[2]!, argumentsJson: JSON.stringify(args), form: 'xml-inline-arguments' };
+    }
     const attributed = /^<tool_call\s+name\s*=\s*(["'])([A-Za-z_][\w.-]*)\1\s*>([\s\S]*?)<\/tool_call\s*>$/i.exec(trimmed);
     if (!attributed) return null;
     const args = tryJson(attributed[3]!.trim());

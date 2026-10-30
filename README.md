@@ -3,13 +3,22 @@
 这是一个可与原版同时安装的 Cortico / Coopanion provider 插件，基于 MIT 许可的
 `cortico-provider-deepseek-web@0.6.1` 修改。provider 是连接模型服务的适配插件。
 
-修复模型输出下面这种完整调用时，工具名被忽略、调用被当成普通文本的问题：
+修复模型输出下面这些完整调用时，调用被当成普通文本的问题：
 
 ```xml
 <tool_call name="read_file">
 {"path":"notes/pending.md"}
 </tool_call>
 ```
+
+以及参数写在开始标签中的变体（这种写法不属于规范 XML）：
+
+```text
+<tool_call name="pet_move_to" arguments={"to":0.34}></tool_call>
+```
+
+0.1.1 同时支持上述两种格式，保留原来的 JSON 调用信封。
+网页模型通过提示词约定格式，偶尔会换一种写法；插件在交给 coo 前把已识别的完整调用统一成标准 function_call。
 
 保留原版的 DeepSeek 网页会话登录、图片、思考和传输通道功能。工具调用仍通过提示词模拟，
 不能保证模型每次遵守格式；缺少闭合标签、无效 JSON 和多个拼接的 XML 调用不会被本次新增分支执行。
@@ -48,4 +57,4 @@ pnpm build:web
 源代码及登录面板来自 `cortico-provider-deepseek-web@0.6.1`，保留原 [LICENSE](LICENSE)。
 原说明及历史分别保存在 [UPSTREAM-README.md](UPSTREAM-README.md) 和
 [UPSTREAM-CHANGELOG.md](UPSTREAM-CHANGELOG.md)。这是本地制作的修复分支，不代表原作者发布的更新。
-本次修改：新增 XML name 属性解析和回归测试；使用独立模块 id、名称与配置前缀；修正过时的工具支持注释。
+本次修改：新增 name 属性及 arguments 内联参数解析和回归测试；使用独立模块 id、名称与配置前缀；修正过时的工具支持注释。
