@@ -4,6 +4,14 @@
   "type": "module",
   "description": "DeepSeek Web provider with support for XML tool calls using a name attribute; based on cortico-provider-deepseek-web 0.6.1",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ZiLinling/cortico-provider-deepseek-web-fix.git"
+  },
+  "homepage": "https://github.com/ZiLinling/cortico-provider-deepseek-web-fix#readme",
+  "bugs": {
+    "url": "https://github.com/ZiLinling/cortico-provider-deepseek-web-fix/issues"
+  },
   "keywords": [
     "cortico-provider",
     "cortico",
