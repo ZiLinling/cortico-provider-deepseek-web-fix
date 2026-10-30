@@ -114,7 +114,7 @@ export class DeepSeekWebProvider extends BaseProvider {
       throw new GenerationError(
         `DeepSeek Web：收到 ${flat.images.length} 张图，但端点的「多模态」是关的。`
         + '请在端点页打开「多模态」，或先发纯文字。',
-        [], null, { instance: 'deepseek-web-xml-fix', module: 'deepseek-web-xml-fix', model: request.model ?? '', compatibilityDomain: this.opts.baseUrl },
+        [], null, { instance: 'deepseek-web-fix', module: 'deepseek-web-fix', model: request.model ?? '', compatibilityDomain: this.opts.baseUrl },
       );
     }
 
@@ -161,7 +161,7 @@ export class DeepSeekWebProvider extends BaseProvider {
     };
 
     const origin = options.origin ?? {
-      instance: 'deepseek-web-xml-fix', module: 'deepseek-web-xml-fix',
+      instance: 'deepseek-web-fix', module: 'deepseek-web-fix',
       model: request.model ?? '', compatibilityDomain: this.opts.baseUrl,
     };
 

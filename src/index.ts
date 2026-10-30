@@ -50,15 +50,15 @@ interface Texts {
 
 const TEXT: Record<'zh' | 'en', Texts> = {
   zh: {
-    title: 'DeepSeek Web（XML 修复版）',
-    description: '支持带 name 属性的 XML 工具调用。用浏览器里的 DeepSeek 网页会话直接对话与识图，不需要本地反代进程。工具调用靠提示词模拟（网页版没有原生 function calling），默认全部放行，可在端点配置里用白名单收窄。',
+    title: 'DeepSeek Web（修复版）',
+    description: '支持工具调用提取、参数校验和分类前缀清理。用浏览器里的 DeepSeek 网页会话直接对话与识图，不需要本地反代进程。工具调用靠提示词模拟（网页版没有原生 function calling），默认全部放行，可在端点配置里用白名单收窄。',
     off: '关闭深度思考',
     on: '开启深度思考（DeepThink）',
     onNote: 'DeepSeek 网页版只有开与关，没有强度档位。',
   },
   en: {
-    title: 'DeepSeek Web (XML fix)',
-    description: 'Supports XML tool calls with a name attribute. Talk to DeepSeek through a browser web session, with image understanding and no local proxy. Tool calls are simulated in the prompt (the web app has no native function calling); every tool is allowed by default and can be narrowed with an allowlist.',
+    title: 'DeepSeek Web (fix)',
+    description: 'Supports tool-call extraction, validation and metadata cleanup. Talk to DeepSeek through a browser web session, with image understanding and no local proxy. Tool calls are simulated in the prompt (the web app has no native function calling); every tool is allowed by default and can be narrowed with an allowlist.',
     off: 'Thinking off',
     on: 'Thinking on (DeepThink)',
     onNote: 'DeepSeek Web only has on and off; there are no effort levels.',
@@ -148,7 +148,7 @@ function adoptDraftState(stateDir: string, log: Logger): void {
 }
 
 const DEEPSEEK_WEB: ProviderModule = {
-  id: 'deepseek-web-xml-fix',
+  id: 'deepseek-web-fix',
   title: TEXT.zh.title,
   description: TEXT.zh.description,
   describe: {
@@ -170,10 +170,10 @@ const DEEPSEEK_WEB: ProviderModule = {
   accepts: (entry, _spec, mime) => entry.multimodal === true && mime.startsWith('image/'),
   config: (name, _entry, language) => {
     const zh = language === 'zh';
-    const owner = 'provider:deepseek-web-xml-fix';
+    const owner = 'provider:deepseek-web-fix';
     // 拆成两组：设置页里「工具」和「限速/通道」是两件事，混在一起很难找。
     const tools: ConfigGroup = {
-      id: `llm.deepseek-web-xml-fix.${name}`,
+      id: `llm.deepseek-web-fix.${name}`,
       owner,
       schema: {
         type: 'object',
@@ -190,7 +190,7 @@ const DEEPSEEK_WEB: ProviderModule = {
       },
     };
     const transport: ConfigGroup = {
-      id: `llm.deepseek-web-xml-fix.${name}.transport`,
+      id: `llm.deepseek-web-fix.${name}.transport`,
       owner,
       schema: {
         type: 'object',
@@ -353,7 +353,7 @@ const DEEPSEEK_WEB: ProviderModule = {
       listModels: async () => models,
       // 上游不声明上下文窗口。猜一个数字会让 Core 按错误的上限裁剪历史，宁可交给操作员手填。
       contextWindow: () => undefined,
-      compatibilityKey: () => [name, 'deepseek-web-xml-fix'],
+      compatibilityKey: () => [name, 'deepseek-web-fix'],
     };
   },
   webUi(host) {

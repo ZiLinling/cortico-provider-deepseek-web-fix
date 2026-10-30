@@ -11,8 +11,8 @@
       "text",
       "image"
     ],
-    "title": "DeepSeek Web（XML 修复版）",
-    "description": "支持带 name 属性的 XML 工具调用。用浏览器里的 DeepSeek 网页会话直接对话与识图，不需要本地反代进程。工具调用靠提示词模拟（网页版没有原生 function calling），默认全部放行，可在端点配置里用白名单收窄。",
+    "title": "DeepSeek Web（修复版）",
+    "description": "支持工具调用提取、参数校验和分类前缀清理。用浏览器里的 DeepSeek 网页会话直接对话与识图，不需要本地反代进程。工具调用靠提示词模拟（网页版没有原生 function calling），默认全部放行，可在端点配置里用白名单收窄。",
     "reasoningTiers": [
       {
         "id": "off",

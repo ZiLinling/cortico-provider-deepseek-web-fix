@@ -1,9 +1,13 @@
-node_modules/
-*.tgz
-.scratch/
+/*
+!/src/
+!/dist/
+!/package.json
+!/describe.json
+!/README.md
+!/LICENSE
+!/.gitignore
 .env
 .env.*
-!.env.example
 deepseek-auth.json
 account-health.json
 browser-profile/
