@@ -1,0 +1,58 @@
+{
+  "name": "cortico-provider-deepseek-web-xml-fix",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "DeepSeek Web provider with support for XML tool calls using a name attribute; based on cortico-provider-deepseek-web 0.6.1",
+  "license": "MIT",
+  "keywords": [
+    "cortico-provider",
+    "cortico",
+    "deepseek",
+    "deepseek-web",
+    "web-session"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@11.25.0",
+  "main": "./src/index.ts",
+  "cortico": {
+    "kind": "provider",
+    "api": 6,
+    "displayName": "DeepSeek Web（XML 修复版）",
+    "tags": [
+      "experimental",
+      "unofficial-api"
+    ],
+    "describe": "describe.json",
+    "webUiClient": "dist/webui.js",
+    "locales": {
+      "zh": {
+        "displayName": "DeepSeek Web（XML 修复版）",
+        "description": "基于 DeepSeek Web 0.6.1，修复带 name 属性的 XML 工具调用漏识别。"
+      }
+    }
+  },
+  "files": [
+    "src",
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "UPSTREAM-README.md",
+    "UPSTREAM-CHANGELOG.md",
+    "describe.json",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "tsx --test tests/*.test.ts",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.web.json --noEmit",
+    "build:web": "node scripts/build-web.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "cortico": "0.2.8",
+    "esbuild": "^0.28.2",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
+  }
+}

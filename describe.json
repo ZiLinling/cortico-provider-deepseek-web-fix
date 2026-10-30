@@ -1,0 +1,31 @@
+{
+  "provider": {
+    "protocols": [
+      "deepseek-web"
+    ],
+    "auth": [
+      "web-session"
+    ],
+    "local": false,
+    "input": [
+      "text",
+      "image"
+    ],
+    "title": "DeepSeek Web（XML 修复版）",
+    "description": "支持带 name 属性的 XML 工具调用。用浏览器里的 DeepSeek 网页会话直接对话与识图，不需要本地反代进程。工具调用靠提示词模拟（网页版没有原生 function calling），默认全部放行，可在端点配置里用白名单收窄。",
+    "reasoningTiers": [
+      {
+        "id": "off",
+        "label": "关闭深度思考",
+        "thinking": false
+      },
+      {
+        "id": "on",
+        "label": "开启深度思考（DeepThink）",
+        "thinking": true,
+        "effort": "on",
+        "note": "DeepSeek 网页版只有开与关，没有强度档位。"
+      }
+    ]
+  }
+}
