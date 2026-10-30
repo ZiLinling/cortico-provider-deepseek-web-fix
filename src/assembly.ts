@@ -30,7 +30,8 @@ const StreamErrorEvent = (transportErrors as {
   StreamErrorEvent?: new (body: string) => Error;
 }).StreamErrorEvent;
 import { unknownMeters, type TokenMeters } from 'cortico/core/generation.ts';
-import { looksLikeToolCall, parseToolCall, type ParsedCall } from './tools.ts';
+import { isToolCallCandidate, looksLikeToolCall, parseToolCall, type ParsedCall, type ToolLike } from './tools.ts';
+import { ToolCallValidator, ToolOutputError } from './tool-validation.ts';
 
 interface MutableOutput {
   id: string;
@@ -69,12 +70,15 @@ function fragmentKind(fragment: NativeFragment): 'reasoning' | 'text' | 'ignored
 export interface AssemblyHooks {
   /** 上游分配的消息 id：`response_message_id` 是下一轮的 `parent_message_id`。 */
   onMessageIds?(ids: { request?: number; response?: number }): void;
+  allowedTools?: readonly string[];
+  onToolNormalization?(name: string, form: string): void;
 }
 
 export class DeepSeekWebAssembly {
   private readonly response: Response;
   private readonly accumulator = new ResponseAccumulator();
   private readonly hooks: AssemblyHooks;
+  private readonly toolValidator: ToolCallValidator;
   private sequence = 0;
   private started = false;
   private status: string = 'WIP';
@@ -96,6 +100,7 @@ export class DeepSeekWebAssembly {
     this.response = createResponse(`resp_${crypto.randomUUID()}`, request);
     this.response.model = request.model ?? this.response.model;
     this.hooks = hooks;
+    this.toolValidator = new ToolCallValidator((request.tools ?? []) as ToolLike[], hooks.allowedTools);
   }
 
   private send(event: Record<string, unknown>, emit: (event: StreamEvent) => void): void {
@@ -155,6 +160,11 @@ export class DeepSeekWebAssembly {
       return true;
     }
     this.pending.push(delta);
+    // 有工具时先收齐本轮正文，避免代码块或分片边界让调用提前落成普通 message。
+    if (this.toolValidator.hasTools) {
+      this.textMode = 'buffer';
+      return true;
+    }
     if (this.textMode === 'undecided') {
       const sofar = this.pending.join('');
       // 上游会先发若干纯空白帧；这时候还不能判定，也不能启动响应。
@@ -186,8 +196,16 @@ export class DeepSeekWebAssembly {
     this.pending.length = 0;
     if (!buffered.trim()) return null;
     const call = parseToolCall(buffered);
-    if (call) return call;
-    // 攒的时候以为是调用，结果不是：原样当文本交付，一个字都不丢。
+    if (call) {
+      if (this.status === 'INCOMPLETE') throw new ToolOutputError('incomplete_generation', '上游标记本轮生成未完成');
+      this.toolValidator.validate(call);
+      this.hooks.onToolNormalization?.(call.name, call.form);
+      return call;
+    }
+    if (isToolCallCandidate(buffered)) {
+      throw new ToolOutputError('unparsed_tool_call', '检测到工具调用标记，但无法提取唯一工具名和完整 JSON 参数');
+    }
+    // 普通正文仍按正文交付；疑似但无效的工具调用已明确报错。
     this.sendText(buffered, emit);
     return null;
   }

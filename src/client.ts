@@ -183,6 +183,8 @@ export class DeepSeekWebProvider extends BaseProvider {
       refresh: async () => this.reloadAuth(),
       assembly: (): ResponseAssembly => new DeepSeekWebAssembly(request, {
         onMessageIds: ids => this.opts.session.messageIds(key, ids.response),
+        allowedTools: flat.toolNames,
+        onToolNormalization: (name, form) => this.opts.log.info('工具调用已提取、校验并重封装', { tool: name, form }),
       }),
       parse: (): { response: Response; meters: never; serviceTier: null } => {
         throw new LLMError('DeepSeek Web 只产出 SSE，非流式路径不可达', 0, '');

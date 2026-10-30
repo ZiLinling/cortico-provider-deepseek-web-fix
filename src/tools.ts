@@ -109,7 +109,69 @@ export function buildToolManual(tools: readonly ToolLike[], allowed: readonly st
 /** 输出以这些形状开头时，先按「可能是调用」处理，攒完整再判断。 */
 export function looksLikeToolCall(text: string): boolean {
   const head = text.replace(/^\s+/, '').slice(0, 24).toLowerCase();
-  return head.startsWith('{') || head.startsWith('<') || head.startsWith('tool_call');
+  return head.startsWith('{') || head.startsWith('<') || head.startsWith('`')
+    || head.startsWith('tool_call') || (head.length > 0 && 'tool_call'.startsWith(head));
+}
+
+function unwrapFence(text: string): string {
+  const fenced = /^```(?:json|xml|text)?\s*\n?([\s\S]*?)\s*```$/i.exec(text.trim());
+  return fenced ? fenced[1]!.trim() : text.trim();
+}
+
+/** 只用于明确的调用标记；普通 HTML、普通 JSON 和自然语言不强制视为工具。 */
+export function isToolCallCandidate(text: string): boolean {
+  const value = unwrapFence(text);
+  return /^<tool_call\b/i.test(value) || /^TOOL_?CALL\s*[:：]/i.test(value)
+    || /^\{\s*"(?:tool_call|function_call|tool_calls|function_calls|name)"\s*:/.test(value);
+}
+
+/** 提取一个完整的 JSON 对象。忽略字符串中的括号、转义及 XML 样式标记。 */
+function objectPrefix(text: string): { value: Record<string, unknown>; tail: string } | null {
+  if (!text.startsWith('{')) return null;
+  let depth = 0;
+  let quoted = false;
+  let escaped = false;
+  for (let index = 0; index < text.length; index++) {
+    const char = text[index]!;
+    if (quoted) {
+      if (escaped) escaped = false;
+      else if (char === '\\') escaped = true;
+      else if (char === '"') quoted = false;
+    } else if (char === '"') quoted = true;
+    else if (char === '{') depth++;
+    else if (char === '}' && --depth === 0) {
+      let value: unknown;
+      try { value = JSON.parse(text.slice(0, index + 1)); } catch { return null; }
+      if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+      return { value: value as Record<string, unknown>, tail: text.slice(index + 1).trim() };
+    }
+  }
+  return null;
+}
+
+/** 名字、参数和外层包装分开读取。外层可缺定界符，JSON 内容绝不补写。 */
+function parseNamedTag(text: string): ParsedCall | null {
+  const name = /^<tool_call\s+name\s*=\s*(["'])([A-Za-z_][\w.-]*)\1/i.exec(text);
+  if (!name) return null;
+  let rest = text.slice(name[0].length).trimStart();
+  const attribute = /^arguments\s*=\s*/i.exec(rest);
+  if (attribute) rest = rest.slice(attribute[0].length).trimStart();
+  else {
+    if (!rest.startsWith('>')) return null;
+    rest = rest.slice(1).trimStart();
+  }
+  const object = objectPrefix(rest);
+  if (!object) return null;
+  const tailAllowed = attribute
+    ? /^(?:\/>|>(?:\s*<\/tool_call\s*>)?|<\/tool_call\s*>)?$/i.test(object.tail)
+    : /^(?:<\/tool_call\s*>)?$/i.test(object.tail);
+  if (!tailAllowed) return null;
+  const complete = attribute
+    ? /^>\s*<\/tool_call\s*>$/i.test(object.tail) || object.tail === '/>'
+    : /^<\/tool_call\s*>$/i.test(object.tail);
+  const form = attribute ? 'xml-inline-arguments' : 'xml-name-attribute';
+  return { name: name[2]!, argumentsJson: JSON.stringify(object.value),
+    form: complete ? form : `${form}/repaired-wrapper` };
 }
 
 function asArguments(value: unknown): string | null {
@@ -204,7 +266,7 @@ function tryJson(raw: string): unknown {
  * 从一段模型输出里找出工具调用。找不到返回 null —— 调用方应当把它当普通文本处理。
  */
 export function parseToolCall(text: string): ParsedCall | null {
-  const trimmed = text.trim();
+  const trimmed = unwrapFence(text);
   if (!trimmed) return null;
 
   // 1) 整段就是一个 JSON。
@@ -214,22 +276,9 @@ export function parseToolCall(text: string): ParsedCall | null {
     if (shaped) return shaped;
   }
 
-  // 工具名在 XML 属性里时，标签内只有参数，不能按 JSON 调用信封解析。
-  // 只接受完整、独立的单次调用；缺尾标签或无效参数不能猜成可执行操作。
+  // 工具名与参数分离提取，再由调用方按本轮工具定义校验和重封装。
   if (/^<tool_call\s+name\s*=/i.test(trimmed)) {
-    // 网页模型也会把 JSON 参数直接写进开始标签。它不是规范 XML 属性，
-    // 因此按已知的调用格式解析；参数必须仍是完整 JSON 对象，正文必须为空。
-    const inline = /^<tool_call\s+name\s*=\s*(["'])([A-Za-z_][\w.-]*)\1\s+arguments\s*=\s*([\s\S]+)>\s*<\/tool_call\s*>$/i.exec(trimmed);
-    if (inline) {
-      const args = tryJson(inline[3]!.trim());
-      if (!args || typeof args !== 'object' || Array.isArray(args)) return null;
-      return { name: inline[2]!, argumentsJson: JSON.stringify(args), form: 'xml-inline-arguments' };
-    }
-    const attributed = /^<tool_call\s+name\s*=\s*(["'])([A-Za-z_][\w.-]*)\1\s*>([\s\S]*?)<\/tool_call\s*>$/i.exec(trimmed);
-    if (!attributed) return null;
-    const args = tryJson(attributed[3]!.trim());
-    if (!args || typeof args !== 'object' || Array.isArray(args)) return null;
-    return { name: attributed[2]!, argumentsJson: JSON.stringify(args), form: 'xml-name-attribute' };
+    return parseNamedTag(trimmed);
   }
 
   // 2) `<tool_call>…</tool_call>` 以及 DeepSeek 的 DSML 变体。
