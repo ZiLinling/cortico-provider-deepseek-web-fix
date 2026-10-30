@@ -1,3 +1,9 @@
 node_modules/
 *.tgz
 .scratch/
+.env
+.env.*
+!.env.example
+deepseek-auth.json
+account-health.json
+browser-profile/

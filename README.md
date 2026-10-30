@@ -3,6 +3,10 @@
 这是一个可与原版同时安装的 Cortico / Coopanion provider 插件，基于 MIT 许可的
 `cortico-provider-deepseek-web@0.6.1` 修改。provider 是连接模型服务的适配插件。
 
+上游发布包：[cortico-provider-deepseek-web](https://www.npmjs.com/package/cortico-provider-deepseek-web)。
+所用 0.6.1 版本的 npm 发布者为 `lian0721`。原有 provider、网页登录、传输和图片支持等功能来自上游；
+本仓库维护工具调用提取、参数校验及 ds_safety 输出处理等修改，不代表上游发布的更新。
+
 修复模型输出下面这些完整调用时，调用被当成普通文本的问题：
 
 ```xml
@@ -75,6 +79,7 @@ pnpm build:web
 ## 来源与许可
 
 源代码及登录面板来自 `cortico-provider-deepseek-web@0.6.1`，保留原 [LICENSE](LICENSE)。
+本地基础代码取自该版本的已安装发行包；本仓库的提交记录只记录本修改版的开发过程，不包含上游 Git 历史。
 原说明及历史分别保存在 [UPSTREAM-README.md](UPSTREAM-README.md) 和
 [UPSTREAM-CHANGELOG.md](UPSTREAM-CHANGELOG.md)。这是本地制作的修复分支，不代表原作者发布的更新。
 本次修改：统一提取工具名和完整 JSON 参数、按本轮工具定义校验、重封装；补充回归测试、独立模块身份及配置前缀。
